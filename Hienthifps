@@ -1,0 +1,101 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+----------------------------------------------------------------
+-- 1. TẠO GIAO DIỆN (UI) HỘP CHỨA VÀ TEXT FPS
+----------------------------------------------------------------
+-- Tạo ScreenGui độc lập
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "Zidwi_FPS_Movable"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+-- Tạo một Frame trong suốt làm hộp chứa (để người chơi dễ bấm kéo thả)
+local dragFrame = Instance.new("Frame")
+dragFrame.Name = "DragFrame"
+dragFrame.Size = UDim2.new(0, 140, 0, 45)
+dragFrame.Position = UDim2.new(0, 20, 0, 20) -- Vị trí mặc định ban đầu (Góc trên trái)
+dragFrame.BackgroundTransparency = 1 -- Trong suốt hoàn toàn để nhìn xuyên thấu
+dragFrame.Active = true
+dragFrame.Selectable = true
+dragFrame.Parent = screenGui
+
+-- Tạo chữ hiển thị FPS bên trong Frame
+local fpsLabel = Instance.new("TextLabel")
+fpsLabel.Name = "FPSLabel"
+fpsLabel.Size = UDim2.new(1, 0, 1, 0)
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.TextSize = 24
+fpsLabel.Font = Enum.Font.RobotoMono -- Font chữ dạng điện tử/máy tính nhìn rất gọn
+fpsLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- Chữ trắng
+fpsLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Viền đen
+fpsLabel.TextStrokeTransparency = 0 -- Hiện rõ viền đen 100%
+fpsLabel.TextXAlignment = Enum.TextXAlignment.Center
+fpsLabel.TextYAlignment = Enum.TextYAlignment.Center
+fpsLabel.Text = "FPS: --"
+fpsLabel.Parent = dragFrame
+
+----------------------------------------------------------------
+-- 2. ĐỘNG CƠ ĐẾM FPS CHÍNH XÁC Theo Thời Gian Thực
+----------------------------------------------------------------
+local frameCount = 0
+local nextUpdate = os.clock() + 1
+
+RunService.RenderStepped:Connect(function()
+	frameCount = frameCount + 1
+	if os.clock() >= nextUpdate then
+		fpsLabel.Text = "FPS: " .. frameCount
+		frameCount = 0
+		nextUpdate = os.clock() + 1
+	end
+end)
+
+----------------------------------------------------------------
+-- 3. HỆ THỐNG KÉO THẢ (DRAG & DROP) CHO CẢ PC VÀ MOBILE
+----------------------------------------------------------------
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	dragFrame.Position = UDim2.new(
+		startPos.X.Scale, 
+		startPos.X.Offset + delta.X, 
+		startPos.Y.Scale, 
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+dragFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = dragFrame.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+dragFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+print("✅ ZIDWI FPS: Đã kích hoạt bảng hiển thị FPS chữ trắng viền đen! Bạn có thể đè chuột/tay vào chữ để kéo đi bất cứ đâu.")
